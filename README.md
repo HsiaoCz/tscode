@@ -107,4 +107,63 @@ console.log(lol); // 德彪
 console.log(action); //888
 
 // 使用这种方式需要注意，解构数组元素的个数不能超过元组中的元素个数
+// 元组类型[string,number]的长度是2，在位置索引2处没有任何元素
+```
+
+**元组类型的可选元素**
+
+在定义元组类型时，也可以通过?来声明元组类型的可选元素
+
+```typescript
+// 要求包含一个必须的字符串属性，和一个可选的布尔值属性
+let arr: [string, boolean?];
+
+arr = ["一个能打的都没有", true];
+console.log(arr); // ['一个能打的都没有', true]
+
+arr = ["如果暴力不是为了杀戮"];
+console.log(arr); // ['如果暴力不是为了杀戮']
+```
+
+**元组类型的剩余元素**
+
+元组类型最后一个元素可以是剩余元素，形式为...x，可以把它当作 ES6 中的剩余参数
+代表元组可以有 0 个或者多个额外的元素
+
+```typescript
+let arr: [number, ...string[]];
+arr = [1, "赵信"];
+arr = [1, "赵信", "李四", "张三"];
+```
+
+只读的元组类型
+可以为任何元组类型加上 readonly 关键字前缀，使其成为只读元组
+
+```typescript
+const arr: readonly [string, number] = ["断剑重铸之日", 666];
+
+// 使用readonly来修饰元组之后，任何企图改变元组中元素的操作都会报错
+arr[0] = "骑士归来之时"; // 这里会报错
+
+arr.push(6); // 这里也会报错
+```
+
+### 2、函数
+
+```typescript
+// 函数声明
+// 表示参数x,y,类型都为number，返回值也是number类型
+function sum(x: number, y: number): number {
+  return x + y;
+}
+
+// 函数表达式
+
+const sum = function (x: number, y: number): number {
+  return x + y;
+};
+
+// 箭头函数
+
+const sum = (x: number, y: number): number => x + y;
 ```
