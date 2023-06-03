@@ -454,17 +454,18 @@ a = true;
 
 ```typescript
 const arr: number[] = [1, 2, 3];
-const res: number = arr.find(num => num > 2); // Type 'undefined' is not assignable to type 'number'
+const res: number = arr.find((num) => num > 2); // Type 'undefined' is not assignable to type 'number'
 ```
 
-这里，res的值一定是3，所以它的类型应该是number，但是ts的类型检测无法做到绝对智能，在ts看来，res的类型既可能是number也可能是undefined，所以提示错误信息:不能把undefined类型分配给number类型
+这里，res 的值一定是 3，所以它的类型应该是 number，但是 ts 的类型检测无法做到绝对智能，在 ts 看来，res 的类型既可能是 number 也可能是 undefined，所以提示错误信息:不能把 undefined 类型分配给 number 类型
 
 类型断言就派上用场了。类型断言是一种笃定的方式，它只作用于类型层面的强制类型转换（可以理解成一种暂时的善意的谎言，不会影响运行效果），告诉编译器应该按照我们的方式来做类型检查。
 
-**使用as做类型断言**
+**使用 as 做类型断言**
+
 ```typescript
-const arr: number[] = [1, 2, 3]; 
-const res: number = arr.find(num => num > 2) as number;
+const arr: number[] = [1, 2, 3];
+const res: number = arr.find((num) => num > 2) as number;
 ```
 
 **尖括号**
@@ -472,6 +473,172 @@ const res: number = arr.find(num => num > 2) as number;
 使用尖括号做类型断言
 
 ```typescript
-const value: any = '我好想点什么!';
+const value: any = "我好想点什么!";
 const valueLength: number = (<string>value).length;
+```
+
+> 以上两种语法虽然没有区别，但是尖括号格式会与 react 中的 JSX 产生语法冲突，因此更推荐使用 as 语法。
+
+**非空断言**
+
+当类型检查系统无法从上下文中断定类型时，非空断言操作符！可以用来断言操作对象是非 null 和 undefined 类型，简单说 v!将从 v 的值域中排除掉 null 和 undefined:
+
+```typescript
+let v: null | undefined | string;
+v.toString(); // Object is possibly 'null' or 'undefined'
+v!.toString(); // ok
+
+type FuncType = () => number;
+
+function fn(getNum: FuncType | undefined) {
+  // Object is possibly 'undefined'
+  // Cannot invoke an object which is possibly 'undefined'
+  const value1 = getNum();
+  const value2 = getNum!(); // ok
+}
+```
+
+**确定赋值断言**
+
+TS 允许在实例属性和变量声明后面添加一个！，用来告诉类型系统该属性会被明确的赋值
+
+```typescript
+let x: number;
+init();
+
+console.log(x + 1); // Variable 'x' is used before being assigned
+
+function init() {
+  x = 1;
+}
+```
+
+上面的例子，提示错误信息，变量 x 在赋值之前被使用，可以用确定赋值断言来解决这个问题
+
+```typescript
+let x!: number;
+
+inti();
+
+console.log(x + 1); //ok
+
+function init() {
+  x = 1;
+}
+```
+
+通过 let x!: number 确定赋值断言，TS 编译器就会知道该属性会被明确地赋值。
+
+> 注意： !不要轻易使用，如果值本身就是 null 或者 undefined，使用!仅仅是绕过了检查，程序仍会报错。
+
+### 6、字面量类型
+
+在 TS 中，字面量不仅可以表示值，还可以表示类型，即字面量类型。
+目前支持三种字面量类型：字符串字面量类型、数字字面量类型、布尔值字面量类型，对应的字符串字面量、数字字面量、布尔值字面量分别拥有与其值一样的字面量类型：
+
+```typescript
+let x: "是时候表演真正的技术了!" = "是时候表演真正的技术了!";
+let y: 666 = 666;
+let z: false = false;
+
+// 冒号后面的'是时候表演真正的技术了!在这里表示一个字符串字面量类型，它其实是string类型，准确地说是string类型的子类型。而string类型不一定是字符串字面量类型
+
+let a: "长枪依在!" = "长枪依在!";
+let b: string = "你要来几发么?";
+a = b; // Type 'string' is not assignable to type '"长枪依在!"'
+b = a; // ok
+
+// 上面的栗子同样适用于其它字面量类型。实际上，定义单个的字面量类型并没有太大的用处，它真正的应用场景是把多个字面量类型组合成一个联合类型，用来描述有明确成员的实用的集合。联合类型后面会讲到
+
+type Direction = "up" | "down";
+
+function move(dir: Direction) {
+  // ...
+}
+
+move("up"); // ok
+move("left"); // Argument of type '"left"' is not assignable to parameter of type 'Direction'
+
+// 通过使用字面量类型组合而成的联合类型，可以限制函数的入参为更具体的类型。这既提升了代码的可读性，也更加安全
+```
+
+**let 和 const**
+
+```typescript
+const str = "我还以为你从来都不会选我呢"; // str: '我还以为你从来都不会选我呢'
+const num = 1; // num: 1
+const bool = true; // bool: true
+
+// 上面代码中，用const定义不可变的常量，在没有添加类型注解的情况下，TS 推断出常量的类型为赋值字面量的类型
+
+let str = "hello"; //string
+let num = 1; //number
+let bool = false; //boolean
+
+// 没有给使用let定义的变量显式地添加类型注解，但是变量的类型自动地转换成了赋值字面量类型的爸爸类型。
+// 这种设计符合编程预期，所以可以将任何string类型的值赋给str，也可以将任何number类型的值赋给num
+
+str = "我还没脚软呢，泥腿子!";
+num = 888;
+bool = false;
+```
+
+**类型拓宽**
+
+所有通过 let 和 var 定义的变量、函数的形参，对象的非只读属性，如果满足指定了初始值且未显式添加类型注解的条件，那么它们推断出来的类型就是指定的初始值字面量类型拓宽后的类型，这就是字面量类型拓宽。
+
+```typescript
+let str = "我用双手成就你的梦想"; // str: string
+
+let fn = (x = "奉均衡之命!") => x; // fn: (x?: string) => string
+
+const a = "明智之选"; // a: '明智之选'
+let b = a; // b: string
+let func = (c = a) => c; // func: (c?: string) => string
+
+// 除了字面量类型拓宽之外，TS 对某些特定类型值也有类似类型拓宽的设计。例如对null和undefined的类型进行拓宽，通过let var定义的变量如果满足未显式添加类型注解且被赋予了null或undefined值，则推断出这些变量的类型为any
+
+let x = null; //x:any
+let y = undefined; // y:any
+
+const a = null; // a:null
+const b = undefined; // b:undefined
+
+type ObjType = {
+  a: number;
+  b: number;
+  c: number;
+};
+
+type KeyType = "a" | "b" | "c";
+
+function fn(object: Object, key: KeyType) {
+  return object[key];
+}
+
+let object = { a: 123, b: 456, c: 789 };
+let key = "a";
+fn(object, key); //  Argument of type 'string' is not assignable to parameter of type '"a" | "b" | "c"'
+
+// 这里之所以会报错，变量key的类型被推断成了string类型（类型拓宽） ，但是函数期望它的第二个参数是一个更具体的类型，所以报错。
+```
+
+TS 提供了一些控制拓宽过程的方法，其中一种是使用 const，如果用 const 声明一个变量，那么它的类型会更窄
+
+```typescript
+type ObjType = {
+  a: number;
+  b: number;
+  c: number;
+};
+
+type KeyType = "a" | "b" | "c";
+
+function fn(object: ObjType, key: KeyType) {
+  return object[key];
+}
+
+let object = { a: 123, b: 456, c: 789 };
+const key = "a"; // ok
+fn(object, key);
 ```
