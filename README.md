@@ -166,4 +166,115 @@ const sum = function (x: number, y: number): number {
 // 箭头函数
 
 const sum = (x: number, y: number): number => x + y;
+
+// 函数的可选参数
+// 可选参数的后面不允许再出现必需参数
+function queryUserInfo(name: string, age?: number) {
+    if (age) {
+        return `我叫${name},${age}岁`;
+    }
+    return `我叫${name},年龄保密`;
+}
+
+queryUserInfo('王思聪', 18); // 我叫王思聪，18岁（有钱人永远18岁！）
+queryUserInfo('孙一宁'); // 我叫孙一宁，年龄保密
+
+// 参数默认值
+// 可以给一个参数一个默认值，当调用者没有传该参数或者传入了undefined时，这个默认值就生效了
+// 默认值也可以在必需参数之前，想要触发默认值，必须要主动的传入undefined
+
+function queryUserInfo(name: string, age: number, sex: string = '不详') {
+    return `姓名:${name}，年龄:${age}，性别:${sex}`; 
+}
+
+queryUserInfo('xxx', 26); // 姓名:xxx，年龄:26，性别:不详
+
+
+// 函数的剩余参数
+
+function push(arr: any[], ...items: any[]) {
+    items.forEach(item => arr.push(item));
+}
+
+let array: any[] = [];
+push(array, 1, 2, 3, '迪丽热巴', '古力娜扎');
+console.log(array); // [1, 2, 3, '迪丽热巴', '古力娜扎']
+
+// 函数重载
+
+type UnionType = number | string;
+
+function sum(x:number,y:number):number;
+function sum(x: string, y: string): string;
+function sum(x: string, y: number): string;
+function sum(x: number, y: string): string;
+function sum(x: UnionType, y: UnionType) {
+    if (typeof x === 'string' || typeof y === 'string') {
+        return x.toString() + y.toString();
+    }
+    return x + y;
+}
+
+const res = sum('你', '好');
+res.split('');
+```
+
+**any**
+
+TS中，任何类型都可以被归为any类型，现在go也有这个关键字
+any类型时类型系统的顶级类型
+普通类型，不允许赋值过程中改变类型
+
+```typescript
+let a:string="hello";
+a=333;// 这里就会出错
+
+let b:any="123";
+b=123;
+b={};
+b=[];
+
+// 这里都不会报错
+// 变量在声明的时候，如果不指定其类型，那么会被识别为any类型
+
+let something;
+something="123";
+something=111;
+something=false;
+```
+
+**unknown**
+
+```typescript
+// unknown与any十分相似，所有类型都可以分配给unknown类型
+
+let a:unknown=250;
+a='面对疾风吧';
+a=true;
+```
+
+- unknown与any最大的区别是：任何类型的值都可以赋值给any，同时any类型的值也可以赋值给任何类型（never除外）。任何类型的值都可以赋值给unknown，但unknown类型的值只能赋值给unknown和any：
+
+```typescript
+let a: unknown = 520;
+let b: any = a; // ok
+
+let a: any = 520;
+let b: unknown = a // ok
+
+let a: unknown = 520;
+let b: number = a; // error
+
+// 如果不缩小类型，就无法对unknown类型执行任何操作
+// 可以使用typeof或者类型断言等方式来缩小未知范围
+
+const a: unknown = '超神!';
+a.split(''); // error
+
+if (typeof a === 'string') {
+    a.split(''); // ok
+}
+
+// 类型断言，后面会讲到
+(a as string).split(''); // ok
 ```
