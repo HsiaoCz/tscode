@@ -170,77 +170,78 @@ const sum = (x: number, y: number): number => x + y;
 // 函数的可选参数
 // 可选参数的后面不允许再出现必需参数
 function queryUserInfo(name: string, age?: number) {
-    if (age) {
-        return `我叫${name},${age}岁`;
-    }
-    return `我叫${name},年龄保密`;
+  if (age) {
+    return `我叫${name},${age}岁`;
+  }
+  return `我叫${name},年龄保密`;
 }
 
-queryUserInfo('王思聪', 18); // 我叫王思聪，18岁（有钱人永远18岁！）
-queryUserInfo('孙一宁'); // 我叫孙一宁，年龄保密
+queryUserInfo("王思聪", 18); // 我叫王思聪，18岁（有钱人永远18岁！）
+queryUserInfo("孙一宁"); // 我叫孙一宁，年龄保密
 
 // 参数默认值
 // 可以给一个参数一个默认值，当调用者没有传该参数或者传入了undefined时，这个默认值就生效了
 // 默认值也可以在必需参数之前，想要触发默认值，必须要主动的传入undefined
 
-function queryUserInfo(name: string, age: number, sex: string = '不详') {
-    return `姓名:${name}，年龄:${age}，性别:${sex}`; 
+function queryUserInfo(name: string, age: number, sex: string = "不详") {
+  return `姓名:${name}，年龄:${age}，性别:${sex}`;
 }
 
-queryUserInfo('xxx', 26); // 姓名:xxx，年龄:26，性别:不详
-
+queryUserInfo("xxx", 26); // 姓名:xxx，年龄:26，性别:不详
 
 // 函数的剩余参数
 
 function push(arr: any[], ...items: any[]) {
-    items.forEach(item => arr.push(item));
+  items.forEach((item) => arr.push(item));
 }
 
 let array: any[] = [];
-push(array, 1, 2, 3, '迪丽热巴', '古力娜扎');
+push(array, 1, 2, 3, "迪丽热巴", "古力娜扎");
 console.log(array); // [1, 2, 3, '迪丽热巴', '古力娜扎']
 
 // 函数重载
 
 type UnionType = number | string;
 
-function sum(x:number,y:number):number;
+function sum(x: number, y: number): number;
 function sum(x: string, y: string): string;
 function sum(x: string, y: number): string;
 function sum(x: number, y: string): string;
 function sum(x: UnionType, y: UnionType) {
-    if (typeof x === 'string' || typeof y === 'string') {
-        return x.toString() + y.toString();
-    }
-    return x + y;
+  if (typeof x === "string" || typeof y === "string") {
+    return x.toString() + y.toString();
+  }
+  return x + y;
 }
 
-const res = sum('你', '好');
-res.split('');
+const res = sum("你", "好");
+res.split("");
 ```
+
+### 3、一些类型
 
 **any**
 
-TS中，任何类型都可以被归为any类型，现在go也有这个关键字
-any类型时类型系统的顶级类型
+TS 中，任何类型都可以被归为 any 类型，现在 go 也有这个关键字
+any 类型时类型系统的顶级类型
 普通类型，不允许赋值过程中改变类型
 
 ```typescript
-let a:string="hello";
-a=333;// 这里就会出错
+let a: string = "hello";
+a = 333; // 这里就会出错
 
-let b:any="123";
-b=123;
-b={};
-b=[];
+let b: any = "123";
+b = 123;
+b = {};
+b = [];
 
 // 这里都不会报错
 // 变量在声明的时候，如果不指定其类型，那么会被识别为any类型
 
 let something;
-something="123";
-something=111;
-something=false;
+something = "123";
+something = 111;
+something = false;
 ```
 
 **unknown**
@@ -248,19 +249,19 @@ something=false;
 ```typescript
 // unknown与any十分相似，所有类型都可以分配给unknown类型
 
-let a:unknown=250;
-a='面对疾风吧';
-a=true;
+let a: unknown = 250;
+a = "面对疾风吧";
+a = true;
 ```
 
-- unknown与any最大的区别是：任何类型的值都可以赋值给any，同时any类型的值也可以赋值给任何类型（never除外）。任何类型的值都可以赋值给unknown，但unknown类型的值只能赋值给unknown和any：
+- unknown 与 any 最大的区别是：任何类型的值都可以赋值给 any，同时 any 类型的值也可以赋值给任何类型（never 除外）。任何类型的值都可以赋值给 unknown，但 unknown 类型的值只能赋值给 unknown 和 any：
 
 ```typescript
 let a: unknown = 520;
 let b: any = a; // ok
 
 let a: any = 520;
-let b: unknown = a // ok
+let b: unknown = a; // ok
 
 let a: unknown = 520;
 let b: number = a; // error
@@ -268,13 +269,209 @@ let b: number = a; // error
 // 如果不缩小类型，就无法对unknown类型执行任何操作
 // 可以使用typeof或者类型断言等方式来缩小未知范围
 
-const a: unknown = '超神!';
-a.split(''); // error
+const a: unknown = "超神!";
+a.split(""); // error
 
-if (typeof a === 'string') {
-    a.split(''); // ok
+if (typeof a === "string") {
+  a.split(""); // ok
 }
 
 // 类型断言，后面会讲到
-(a as string).split(''); // ok
+(a as string).split(""); // ok
+```
+
+**void**
+
+void 表示没有任何类型，和其他类型是平等关系，不能直接赋值
+
+```typescript
+let a: void;
+let b: number = a; // Type 'void' is not assignable to type 'number'
+
+// 声明一个void类型的变量没有任何意义，一般只有在函数没有返回值的时候才会使用它
+```
+
+**never**
+
+never 表示那些用不存在的值的类型
+值会永不存在有两种情况： 1.如果一个函数执行抛出了异常，那么这个函数就永远不存在返回值 2.函数在执行无限循环的代码
+
+```typescript
+// 抛出异常
+function error(msg: string): never {
+  // ok
+  throw new Error(msg);
+}
+
+// 死循环
+function loopForever(): never {
+  // ok
+  while (true) {}
+}
+```
+
+never 和 null 和 undefined 一样，也是任何类型的子类型，也可以赋值给任何类型
+但是没有类型是 never 的子类型或可以赋值给 never 类型，除了 never 本身之外，即时 any 也不可以赋值给 never:
+
+```typescript
+let a: never;
+let b: never;
+let c: any;
+
+a = 250; //error
+a = b; //ok
+b = c; // error
+```
+
+在 ts 中，可以利用 never 类型的特性来实现全面性检查
+
+```typescript
+type Type = string | number;
+
+function inspectWithNerver(param: Type) {
+  if (typeof param === "string") {
+    // 在这里收窄为 string 类型
+  } else if (typeof param === "number") {
+    // 在这里收窄为 number 类型
+  } else {
+    // 在这里是 never 类型
+    const check: never = param;
+  }
+}
+
+// 在 else 分支里，把既不是string类型也不是number类型的param赋值给了一个显式声明的never类型的变量，如果一切逻辑正确，那么就可以编译通过。假如有一天你的同事修改了Type的类型：
+
+type Type = string | number | boolean;
+
+// 然而他忘记了同时修改inspectWithNever方法中的控制流程，这时else分支的param类型会被收窄为boolean类型，导致无法赋值给never类型，此时就会出现一个错误提示。
+// 通过这种方法，可以确保inspectWithNever方法总是穷尽了Type的所有可能类型，使得代码的类型绝对安全。
+```
+
+**object、Object、{}**
+
+小 object 代表的是所有非原始类型，也就是不能把 number string 等原始类型赋值给小 object，在严格模式下,null 和 undeined 类型也不能赋值给小 object
+
+一下类型被视为 string、number、boolean、null、undeined、bigInt、symbol
+
+```typescript
+let obj: object;
+
+obj = 1; //error
+obj = "人在塔在!"; // error
+obj = true; // error
+obj = null; // error
+obj = undefined; // error
+obj = 100n; // error
+obj = Symbol(); // error
+obj = {}; // ok
+```
+
+大 Object 代表所有拥有 toString hasOwnProperty 方法的类型，所以，所有原始类型和非原始类型都可以赋值给大 Object。同样，在严格模式下 null 和 undefined 类型也不能赋给大 Object
+
+```typescript
+let obj: Object;
+
+obj = 1; // ok
+obj = "人在塔在!"; // ok
+obj = true; // ok
+obj = null; // error
+obj = undefined; // error
+obj = 100n; // ok
+obj = Symbol(); // ok
+obj = {}; // ok
+```
+
+大 Object 包含原始类型，而小 object 仅包含非原始类型。你可能会想，那么大 Object 是不是小 object 的父类型？实际上，大 Object 不仅是小 object 的父类型，同时也是小 object 的子类型。
+
+```typescript
+type FatherType = object extends Object ? true : false; // true
+type ChildType = Object extends object ? true : false; // true
+```
+
+> 空对象和大 Object 可以互相代替，它们两的特性一致
+
+**Number、String、Boolean、Symbol**
+
+首字母大写的 Number String Boolean Symbol 很容易与小写的原始类型 number string boolean symbol 混淆，前者是相应原始类型的包装对象，愿称之为对象类型
+
+```typescript
+let a: number = 520;
+let b: Number = 250;
+
+a = b; // Type 'Number' is not assignable to type 'number'
+b = a; // ok
+```
+
+不要使用对象类型来注解值的类型，没有任何意义。
+
+### 4、类型推断
+
+```typescript
+let str: string = "我的大刀!"; // let str: string
+let num: number = 250; // let num: number
+let bool: boolean = false; // let bool: boolean
+
+const str: string = "我的大刀!"; // const str: string
+const num: number = 250; // const num: number
+const bool: boolean = false; // const bool: boolean
+
+// 自动类型推导，有点类型go
+let str = "我的大刀!"; // 同上
+let num = 250; // 同上
+let bool = false; // 同上
+
+const str = "我的大刀!"; // const str: "我的大刀!"
+const num = 250; // const num: 250
+const bool = false; // const bool: false
+
+// 把 TS 这种基于赋值表达式推断类型的能力称之为类型推断。
+// ，函数返回值、具有初始化值的变量、有默认值的函数参数的类型都可以根据上下文推断出来
+
+function sum(x: number, y: number) {
+  return x + y;
+}
+
+const value = sum(1, 2); //推断出value是number类型
+
+function sum(x: number, y = 2) {
+  return x + y;
+}
+
+const value = sum(1); //推断出value的类型是number
+const v = sum(1, "2"); // 出错
+
+// 如果定义的时候没有赋值，不管之后有没有赋值，都会被推断为any类型
+
+let a;
+a = "你的剑，就是我的剑";
+a = 666;
+a = true;
+```
+
+### 5、类型断言
+
+有时候会遇到这样的情况，你会比 TS 更了解某个值的详细信息，你清楚的知道它的类型比现有类型更加确切：
+
+```typescript
+const arr: number[] = [1, 2, 3];
+const res: number = arr.find(num => num > 2); // Type 'undefined' is not assignable to type 'number'
+```
+
+这里，res的值一定是3，所以它的类型应该是number，但是ts的类型检测无法做到绝对智能，在ts看来，res的类型既可能是number也可能是undefined，所以提示错误信息:不能把undefined类型分配给number类型
+
+类型断言就派上用场了。类型断言是一种笃定的方式，它只作用于类型层面的强制类型转换（可以理解成一种暂时的善意的谎言，不会影响运行效果），告诉编译器应该按照我们的方式来做类型检查。
+
+**使用as做类型断言**
+```typescript
+const arr: number[] = [1, 2, 3]; 
+const res: number = arr.find(num => num > 2) as number;
+```
+
+**尖括号**
+
+使用尖括号做类型断言
+
+```typescript
+const value: any = '我好想点什么!';
+const valueLength: number = (<string>value).length;
 ```
