@@ -640,5 +640,69 @@ function fn(object: ObjType, key: KeyType) {
 
 let object = { a: 123, b: 456, c: 789 };
 const key = "a"; // ok
-fn(object, key);
+fn(object, key); // 这里会报错
 ```
+
+这里之所以会报错，这是因为变量 key 的类型被推断成了 string 类型（类型拓宽） ，但是函数期望它的第二个参数是一个更具体的类型，所以报错
+
+**类型拓宽的控制过程方法**
+
+```typescript
+// 使用const,使用const声明一个变量，那么它的类型会更窄
+type ObjType = {
+  a: number;
+  b: number;
+  c: number;
+};
+
+type KeyType = "a" | "b" | "c";
+
+function fn(object: ObjType, key: KeyType) {
+  return object[key];
+}
+
+let object = { a: 123, b: 456, c: 890 };
+const key = "a"; //ok
+fn(object, key);
+
+// const能解决上面的问题，但有时也不起作用
+const obj = {
+    x: 250,
+}
+
+obj.x = 520; // ok
+obj.x = '520'; // Type 'string' is not assignable to type 'number'
+obj.y = 1314; // Property 'y' does not exist on type '{ x: number; }'
+
+```
+
+对于对象而言，TS 的拓宽算法会将其内部属性视为赋值给let关键字声明的变量，进而来推断其属性的类型。因此，obj的类型为{x: number}。obj.x的值可以是任何number类型的值，但不允许是string类型的，同时也不允许给obj对象添加其它的属性
+
+要解决上面的问题，可以使用const断言.
+
+```typescript
+// TS: {x: number; y: number}
+const obj1 = {
+    x: 1,
+    y: 2,
+}
+
+// TS: {x: 1; y: number}
+const obj2 = {
+    x: 1 as const,
+    y: 2,
+}
+
+// TS: {readonly x: 1; readonly y: 2}
+const obj3 = {
+    x: 1,
+    y: 2,
+} as const;
+
+const arr1 = [1, 2, 3]; // TS: number[]
+const arr2 = [1, 2, 3] as const; // TS: readonly [1, 2, 3]
+
+// 当在某个值后面使用了const断言时，TS 会为这个值推断出最窄的类型，没有拓宽。对于真正的常量，这通常是你想要的
+```
+
+**类型缩小**
