@@ -667,36 +667,35 @@ fn(object, key);
 
 // const能解决上面的问题，但有时也不起作用
 const obj = {
-    x: 250,
-}
+  x: 250,
+};
 
 obj.x = 520; // ok
-obj.x = '520'; // Type 'string' is not assignable to type 'number'
+obj.x = "520"; // Type 'string' is not assignable to type 'number'
 obj.y = 1314; // Property 'y' does not exist on type '{ x: number; }'
-
 ```
 
-对于对象而言，TS 的拓宽算法会将其内部属性视为赋值给let关键字声明的变量，进而来推断其属性的类型。因此，obj的类型为{x: number}。obj.x的值可以是任何number类型的值，但不允许是string类型的，同时也不允许给obj对象添加其它的属性
+对于对象而言，TS 的拓宽算法会将其内部属性视为赋值给 let 关键字声明的变量，进而来推断其属性的类型。因此，obj 的类型为{x: number}。obj.x 的值可以是任何 number 类型的值，但不允许是 string 类型的，同时也不允许给 obj 对象添加其它的属性
 
-要解决上面的问题，可以使用const断言.
+要解决上面的问题，可以使用 const 断言.
 
 ```typescript
 // TS: {x: number; y: number}
 const obj1 = {
-    x: 1,
-    y: 2,
-}
+  x: 1,
+  y: 2,
+};
 
 // TS: {x: 1; y: number}
 const obj2 = {
-    x: 1 as const,
-    y: 2,
-}
+  x: 1 as const,
+  y: 2,
+};
 
 // TS: {readonly x: 1; readonly y: 2}
 const obj3 = {
-    x: 1,
-    y: 2,
+  x: 1,
+  y: 2,
 } as const;
 
 const arr1 = [1, 2, 3]; // TS: number[]
@@ -706,3 +705,249 @@ const arr2 = [1, 2, 3] as const; // TS: readonly [1, 2, 3]
 ```
 
 **类型缩小**
+
+在 ts 中，可以通过一些操作将变量的类型由一个较为宽泛的集合缩小为相对较小，较为明确的集合，这就是类型缩小
+
+```typescript
+let fn(a:any)=>{
+  if (typeof a==='string'){
+    return a;
+  }else if(typeof a==='number'){
+    return a;
+  }
+  return null;
+}
+
+// 利用类型守卫将函数参数的类型从any缩小为明确的类型，hover 到第三行的a提示变量类型是string，第五行则提示变量类型是number。
+
+// 还可以利用类型守卫将联合类型缩小为明确的类型
+let fn = (a: string | number) => {
+    if (typeof a === 'string') {
+        return a; // a: string
+    } else {
+        return a; // a: number
+    }
+}
+```
+
+**联合类型**
+
+联合类型是多种类型的集合，用来约束取值只能是某几个值中的一个，使用`|`分隔每个类型
+
+```typescript
+let a:string | number;
+a="hello";
+a=666;
+
+// 联合类型一般和null或undefined一起使用
+const fn=(a:string | number)=>{
+  ...
+}
+
+fn('哈哈哈');
+fn(undefined);
+fn(888);//这里会报错
+
+// a的类型是联合类型：string | undefined，如果传入number类型的值就会报错。
+```
+
+**类型别名**
+
+使用 type 关键字给一个类型取个新名字，常用于联合类型
+
+```typescript
+type Id = number | number[]; // 别名以大写字母开头
+const delete = (id: Id) => {
+    ...
+}
+```
+
+类型别名只是给一个类型取一个新名字，而不是新创建一个类型
+
+**交叉类型**
+
+交叉类型将多个类型合并为一个类型，使用&交叉类型
+
+```typescript
+type Value = string & number;
+```
+
+上面这种交叉毫无意义，因为没有哪种类型可以既是`string`又是`number`类型，两者不能同时满足，Value 的类型是`never`;
+交叉类型用在将多个接口类型合并成一个类型，从而实现类似于继承的效果；
+
+```typescript
+interface Type1 {
+  name: string;
+  sex: string;
+}
+
+interface Type2 {
+  age: number;
+}
+
+type NewType = Type1 & Type2;
+const person: NewType = {
+  name: "金克丝",
+  sex: "女",
+  age: 19,
+  address: "诺克萨斯", // error
+};
+
+// 将Type1和Type2通过交叉类型合并为NewType，使得NewType同时拥有了 name、sex、age 属性。
+
+// 还可以这样
+type PersonType = { name: string; sex: string } & { age: number };
+const person: PersonType = {
+  name: "凯特琳",
+  sex: "女",
+  age: 21,
+};
+
+// 这里会产生一个问题，如果合并的多个接口类型中存在同名属性会怎样？
+type PersonType = { name: string; sex: string } & { age: number; name: number };
+
+// 这里同名属性不兼容，那么会出现string&number,即never
+
+// 如果同名属性的类型兼容，例如一个是number，另一个是number的子类型(数字字面量类型)，合并后 name 属性的类型就是两者中的子类型：
+type PersonType = { name: string; age: number } & { sex: string; age: 18 };
+
+const person: PersonType = {
+  name: "阿木木",
+  sex: "男",
+  age: 19, // Type '19' is not assignable to type '18'
+};
+// age 属性的类型就是数字字面量 18，所以，不能将 18 以外的任何值赋给 age 属性。
+
+// 如果同名属性是非基本数据类型
+
+interface X {
+  o: { a: string };
+}
+
+interface Y {
+  o: { b: number };
+}
+
+interface Z {
+  o: { c: boolean };
+}
+
+type XYZ = X & Y & Z;
+
+const xyz: XYZ = {
+  o: {
+    a: "啊哈哈",
+    b: 666,
+    c: true,
+  },
+};
+
+// 混合多个类型时，如果存在相同的成员且成员为非基本数据类型，那么是可以合并成功的
+```
+
+### 7、接口
+
+TS 中的接口用来定义对象的类型，也就是说使用接口对对象的形状进行描述
+
+```typescript
+interface Person {
+  //接口首字母大写
+  name: string;
+  age: number;
+}
+
+const jack: Person = {
+  name: "jack",
+  age: 21,
+};
+
+// 这里使用interface关键字定义了一个接口Person，接着定义了一个变量jack，jack的类型是Person，这样就约束了jack的形状必须和接口Person一致
+
+// 定义的变量比接口少一些或多一些属性都是不允许的
+// 也就是赋值的时候,变量的形状和必须和接口保持一致
+```
+
+**接口的只读属性**
+
+```typescript
+interface Person {
+  readonly name: string; //只读属性
+}
+
+// 只读属性并不是只能被读,只读属性只能在创建的时候被赋值
+// 重复赋值就会报错
+interface Person {
+  readonly id: number;
+  name: string;
+  age: number;
+}
+
+const jack: Person = {
+  id: 1,
+  name: "Jack",
+  age: 21,
+};
+
+jack.id = 123; // Cannot assign to 'id' because it is a read-only property
+
+// 有一点需要注意的是:只读的约束作用于第一次给对象赋值的时候，而非第一次给只读属性赋值的时候
+
+interface Person {
+  readonly id: number;
+  name: string;
+  age: number;
+}
+
+// Property 'id' is missing in type '{ name: string; age: number; }' but required in type 'Person'
+const vincent: Person = {
+  name: "Vincent",
+  age: 23,
+};
+
+vincent.id = 123; // Cannot assign to 'id' because it is a read-only property
+
+// 给对象赋值的时候,必须按照接口的约束,不能多也不能少
+// id是只读属性不能单独赋值
+```
+
+**可选属性**
+
+```typescript
+interface Person {
+  age?: number; // 可选属性
+}
+
+// 可选属性是指该属性可以不存在,当希望不用完全匹配一个形状时,可以用可选属性
+
+interface Person {
+  name: string;
+  age: number;
+  sex?: string;
+}
+
+const jack: Person = {
+  // ok
+  name: "Jack",
+  age: 21,
+};
+
+const ruth: Person = {
+  // ok
+  name: "Ruth",
+  age: 18,
+  sex: "女",
+};
+
+const mary: Person = {
+  name: "Mary",
+  age: 19,
+  sex: "女",
+  address: "杭州", // error 仍然不允许添加未定义的属性
+};
+```
+
+**任意属性**
+
+```typescript
+
+```
