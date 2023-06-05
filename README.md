@@ -949,5 +949,201 @@ const mary: Person = {
 **任意属性**
 
 ```typescript
+interface Person {
+  name: string;
+  age?: number;
+  [propName: string]: any; // 这叫索引签名
+}
 
+const monroe: Person = {
+  name: "Monroe",
+  address: "杭州",
+  email: "xxxxxxxx",
+};
+
+// 使用[propName: string]定义了任意属性取string类型的值，propName的写法不是固定的，也可以写成其它值，例如[key: string]。一个接口中只能定义一个任意属性。
+
+// 这里有一点需要注意,一旦定义了任意属性,那么接口中其他确定属性和可选属性的类型必须是任意属性类型的子集
+
+interface Person {
+  name: string; // Property 'name' of type 'string' is not assignable to 'string' index type 'number'
+  [propName: string]: number;
+}
+
+// 任意属性的类型允许是 number，但确定属性 name 的类型是 string，string 不是 number 的子集，所以报错
+
+interface Person {
+  name?: string; // Property 'name' of type 'string | undefined' is not assignable to 'string' index type 'string'
+  [propName: string]: string;
+}
+
+// 这里也会报错的原因是: name 是可选属性，name 的类型其实是 string | undefined，不是 string 的子集，所以报错。
+
+// 所以接口中如果由多个类型的属性,可以在任意属性中使用联合类型:
+
+interface Person {
+  name: string;
+  age?: number;
+  [propName: string]: string | number | undefined;
+}
+```
+
+**绕开属性检查的方法**
+
+鸭子辩型法
+
+```typescript
+interface Person {
+  name: string;
+}
+
+function getPersonInfo(personObj: Person) {
+  console.log(personObj.name);
+}
+
+const psObj = { name: "德莱文", age: 27 };
+
+getPersonInfo({ name: "德莱文", age: 27 }); // error
+
+// 这里在参数里写对象就相当于直接给personObj赋值，这个对象有严格的类型定义，所以不能多参或者少参
+
+// 而在外面将该对象用另一个变量psObj接收，psObj不会经过额外属性检查，但是会根据类型推论为const psObj: {name: string, age: number} = {name: '德莱文', age: 27}。然后将psObj再赋值给personObj，此时根据类型的兼容性，参照「鸭式辨型法」，两个类型因为都具有name属性，所以被认定为相同，故而可以用此方法来绕开多余的类型检查
+```
+
+**类型断言**
+
+类型断言的意义就等同于在告诉程序，你很清楚自己在做什么，此时程序就不会再进行额外的属性检查了
+
+```typescript
+interface Person {
+  name: string;
+  age?: number;
+}
+
+const pete: Person = {
+  name: "Pete",
+  age: 25,
+  sex: "男",
+} as Person; // ok
+```
+
+**索引签名**
+
+```typescript
+interface Person {
+  name: string;
+  age?: number;
+  sex: string;
+  [propName: string]: any;
+}
+
+const trump: Person = {
+  name: "Trump",
+  sex: "男",
+  // ok
+  address: "Mars",
+  phoneNumber: 123456,
+};
+```
+
+**接口与类型别名的区别**
+
+在大多数情况下，使用接口和类型别名的效果是等价的，但是在某些特定的场景下，这两者还是存在很大区别的.
+
+**interface 接口**
+
+TS 的核心原则之一是对值所具有的结构进行类型检查。而接口的作用就是为这些类型命名并且为代码定义数据模型（形状）
+
+type 类型别名
+
+类型别名是给一个类型起个新名字，起别名不会新建一个类型，它是创建了一个新名字来引用那个类型。与接口不同的是，类型别名可以作用于基本类型、联合类型、元组以及其它任何需要手写的类型
+
+```typescript
+interface Person {
+  name: string;
+  age: number;
+  sex: string;
+}
+
+type Person = {
+  name: string;
+  age: number;
+  sex: string;
+};
+type Name = string; // 基本类型
+type Sex = "男" | "女" | "不详"; // 联合类型
+type PersonTuple = [string, number, string]; // 元组
+type ComputeAge = () => number; // 函数
+```
+
+接口可以定义多次,类型别名不可以
+两者的扩展方式不同，但并不互斥。接口可以扩展类型别名，反之亦然。接口的扩展就是继承，通过 extends 关键字来实现；类型别名的扩展就是交叉类型，通过&来实现。
+
+```typescript
+interface Obj1 {
+  x: string;
+}
+
+interface Obj2 extends Obj1 {
+  y: number;
+}
+
+const obj: Obj2 = {
+  x: "生与死，轮回不止。我们生，他们死！",
+  y: 555,
+};
+
+// 这里对接口进行扩展,本质是继承
+```
+
+类型别名扩展别名
+通过交叉类型来扩展
+
+```typescript
+type Obj1 = {
+  x: string;
+};
+
+type Obj2 = Obj1 & {
+  y: number;
+};
+
+const obj: Obj2 = {
+  x: "黑夜，就是我的舞台",
+  y: 777,
+};
+```
+
+**接口扩展类型别名**
+
+```typescript
+type Obj1 = {
+  x: string;
+};
+
+interface Obj2 extends Obj1 {
+  y: number;
+}
+
+const obj: Obj2 = {
+  x: "我的一个跟斗，能翻十万八千里",
+  y: 222,
+};
+```
+
+**类型别名扩展接口**
+
+```typescript
+interface Obj1 {
+  x: string;
+}
+
+type Obj2 = Obj1 & {
+  y: number;
+};
+
+const obj: Obj2 = {
+  x: "只要点一下就够了，蠢货！",
+  y: 333,
+};
 ```
