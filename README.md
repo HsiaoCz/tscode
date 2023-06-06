@@ -1147,3 +1147,286 @@ const obj: Obj2 = {
   y: 333,
 };
 ```
+
+### 8、泛型
+
+思考一个问题：如果需要实现一个函数，函数的参数可以是任何值，返回值就是将参数原样返回，并且只能接收一个参数，该怎么做?
+
+```typescript
+const fn = (arg) => arg;
+
+// 由于可以接收任意值，所以函数的入参和返回值都应该可以是任意类型。现在需要给代码增加类型声明
+// 这时如果用any会出现这样的问题
+
+const fn = (arg: any) => arg;
+
+fn("哈哈哈").length; // ok
+fn("啦啦啦").toFixed(2); // ok
+fn(null).toString(); // ok
+
+// 这里怎么写都可以，但是这样就失去了类型检查的意义了
+// 上例中，传入了'啦啦啦'，类型是string，返回值也一定是string类型，而 string 上并没有 toFixed 方法，这时报错才是想要的，可见使用any不符合预期。
+
+// 也可以这样
+type StrType = (arg: string) => string;
+type NumType = (arg: number) => number;
+type BoolType = (arg: boolean) => boolean;
+
+// 有多少类型就写多少声明
+
+// 最符合预期的是：当传递参数时，能够根据参数的类型自动进行推导和检查，如果传入的是string，但是使用了number上的方法，就会提示错误。
+// 泛型就是为了解决这样的问题
+
+// 来看一下泛型是怎么做的
+
+function fn<T>(arg: T): T {
+  return arg;
+}
+
+fn("Hello");
+
+// 上栗中，定义了一个类型<T>，这个T是一个抽象类型，只有在调用的时候才能确定它的值。当传入'哈哈哈'时，T会自动识别传入参数的类型，进而转换为string，然后再链式传递给参数类型和返回值类型，这样一来就不用将类型写死了
+
+// T代表Type，在定义泛型时通常用作第一个类型变量名称，T并不是固定语法，可以用任何有效名称代替。还有一些常见的泛型变量名
+// K（Key）：表示对象中的键类型
+// V（Value）：表示对象中的值类型
+// E（Element）：表示元素类型
+
+// 泛型变量也可以定义多个
+
+function fn<T, U>(message: T, value: U): U {
+  console.log(message);
+  return value;
+}
+
+console.log(fn<string, number>("hello", 112));
+
+// 传入参数的类型是<string, number>，调用时会传递给<T, U>，一一对应，T就变成了string成为message的类型，U就变成了number成为value的类型和返回值的类型。
+
+// 上面这种形式是显示的设定值
+// 还可以省略尖括号，由编译器推导出这些类型
+console.log(fn("hello", 112));
+```
+
+**泛型约束**
+
+```typescript
+function fn<T>(arg: T): T {
+  console.log(arg.size); // Property 'size' does not exist on type 'T'
+  return arg;
+}
+
+// 这里想打印size属性，但是ts报错了，原因在于T理论上可以是任何类型，跟any相反，无论使用它的什么属性或者方法都会报错(除非这个方法或者属性是所有集合共有的)
+
+// 要想解决这个问题，需要对类型进行约束，限定传给函数的参数类型应该要有size类型，使用extends关键字可以做到这一点
+
+interface ArgType {
+  size: number;
+}
+
+function fn<T extends ArgType>(arg: T): T {
+  console.log(arg.size);
+  return arg;
+}
+```
+
+**泛型工具类型**
+
+```typescript
+// typeof在类型上下文中获取变量或者属性的类型
+interface Person {
+  name: string;
+  age: number;
+}
+
+const lzl: Person = {
+  name: "林志玲",
+  age: 18,
+};
+
+type LzLType = typeof lzl;
+
+// 使用typeof操作符获取到lzl变量的类型并赋值给LzlType类型变量，之后就可以使用LzlType类型了
+const zzy: LzlType = {
+    name: '章子怡',
+    age: 18,
+}
+
+// typeof操作符除了可以获取对象结构的类型之外，还可以用来获取函数的类型
+
+function fn(x: string): string[] {
+    return [x];
+}
+
+type FnType = typeof fn; // (x: string) => string[]
+
+```
+
+```typescript
+// keyof操作符，可以用来获取某种类型的所有键，其返回类型是联合类型
+interface Person{
+  name:string;
+  age:number;
+}
+
+type p =keyof Person;// 'name'|'age'
+```
+由于js是动态类型语言，有时在静态类型系统中捕获某些操作的语义可能会比较麻烦
+
+```typescript
+function fn(obj,key){
+  return obj[key];
+}
+
+// 该函数接收 obj 和 key 两个参数，并返回对应属性的值。对象上的不同属性，可以具有完全不同的类型，甚至都不知道 obj 对象长什么样子
+// 那么该如何定义 fn 函数的类型呢
+
+function fn(obj: object, key: string) {
+    return obj[key];
+}
+
+// 这里为了避免调用fn函数时传入错误的参数类型，为obj和key设置了类型，分别为object和string
+// 但是这里会报错
+// Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'
+
+// 元素隐式地拥有any类型，因为string类型不能被用于索引类型{}。解决这个问题最暴力的方式就是使用 any大法：
+function fn(obj: object, key: string) {
+    return (obj as any)[key];
+}
+// 但这并不是一个好方案。来回顾一下 fn 函数的作用，该函数用于获取某个对象中指定属性的值，因此期望传入的属性是对象中已经存在的属性。那么如何限制属性名的范围内？keyof闪亮登场：
+
+function fn<T extends object, K extends keyof T>(obj: T, key: K) {
+    return obj[key];
+}
+
+// 在这里使用了泛型和泛型约束，还有keyof操作符。首先定义类型 T，并使用extends关键字约束T类型必须是object类型的子类型，然后使用keyof操作符获取T类型的所有键，其返回值是联合类型，最后利用extends关键字约束K类型必须是keyof T联合类型的子类型。
+
+// 还可以看这个例子
+type Person = {
+    name: string;
+    age: number;
+}
+
+const cgx: Person = {
+    name: '吴京',
+    age: 23,
+}
+
+function fn<T extends Person, K extends keyof T>(personObj: T, key: K) {
+    return personObj[key];
+}
+
+const uname = fn(cgx, 'name'); // const uname: string
+const age = fn(cgx, 'age'); // const age: number
+
+// 如果访问cgx对象上不存在的属性，编译器就会报错
+const sex=fn(cgx,'sex');
+```
+
+**in**
+
+in用来遍历枚举类型
+```typescript
+type Keys = 'x' | 'y' | 'z';
+
+type Obj = {
+    [k in Keys]: string;
+} 
+//
+type Obj = {
+    x: string;
+    y: string;
+    z: string;
+}
+```
+
+**extends**
+
+有时不想定义的泛型过于灵活，可以通过extends关键字添加泛型约束
+
+```typescript
+interface ArgType {
+    id: number;
+}
+
+function fn<T extends ArgType>(arg: T): T {
+    console.log(arg.id);
+    return arg;
+}
+
+fn(250); // Argument of type 'number' is not assignable to parameter of type 'ArgType'
+fn({id: 250, value: '奥利给！'}); // ok
+```
+
+**Partial**
+
+将类型的属性变为可选
+
+```typescript
+type Partial<T> = {
+    [P in keyof T]?: T[P];
+}
+```
+先通过keyof T拿到T的所有属性名，然后使用in进行遍历，将值赋给P，再通过T[P]获取相应属性值的类型。?用于将所有属性变成可选。举个例子
+
+```typescript
+interface Person {
+    name: string;
+    age: number;
+}
+
+type NewPerson = Partial<Person>;
+const zhl: NewPerson = {
+    name: '钟汉良',
+}
+
+// 这个 NewPerson 类型等同于：
+interface NewPerson {
+    name?: string;
+    age?: number;
+}
+
+// 这里需要注意的是,Partial<T>只支持处理第一层的属性：
+// 看下面这个例子
+
+interface Person {
+    name: string;
+    age: number;
+    address: {
+        province: string;
+        city: string;
+    };
+}
+
+type NewPerson = Partial<Person>;
+const wyz: NewPerson = {
+    name: '吴彦祖',
+    address: { // Property 'city' is missing in type '{ province: string; }' but required in type '{ province: string; city: string; }'
+        province: '香港省',
+    },
+}
+
+// 可以看到，第二层以后就不会处理了，想要处理多层，可以自己实现
+interface Person {
+    name: string;
+    age: number;
+    address: {
+        province: string;
+        city: string;
+    };
+}
+
+type DeepPartial<T> = {
+    [K in keyof T]?: T[K] extends object
+        ? DeepPartial<T[K]>
+        : T[K];
+}
+
+type NewPerson = DeepPartial<Person>;
+const wyz: NewPerson = {
+    name: '吴彦祖',
+    address: { // ok
+        province: '香港省',
+    },
+}
+```
