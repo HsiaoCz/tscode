@@ -1248,33 +1248,33 @@ type LzLType = typeof lzl;
 
 // 使用typeof操作符获取到lzl变量的类型并赋值给LzlType类型变量，之后就可以使用LzlType类型了
 const zzy: LzlType = {
-    name: '章子怡',
-    age: 18,
-}
+  name: "章子怡",
+  age: 18,
+};
 
 // typeof操作符除了可以获取对象结构的类型之外，还可以用来获取函数的类型
 
 function fn(x: string): string[] {
-    return [x];
+  return [x];
 }
 
 type FnType = typeof fn; // (x: string) => string[]
-
 ```
 
 ```typescript
 // keyof操作符，可以用来获取某种类型的所有键，其返回类型是联合类型
-interface Person{
-  name:string;
-  age:number;
+interface Person {
+  name: string;
+  age: number;
 }
 
-type p =keyof Person;// 'name'|'age'
+type p = keyof Person; // 'name'|'age'
 ```
-由于js是动态类型语言，有时在静态类型系统中捕获某些操作的语义可能会比较麻烦
+
+由于 js 是动态类型语言，有时在静态类型系统中捕获某些操作的语义可能会比较麻烦
 
 ```typescript
-function fn(obj,key){
+function fn(obj, key) {
   return obj[key];
 }
 
@@ -1282,7 +1282,7 @@ function fn(obj,key){
 // 那么该如何定义 fn 函数的类型呢
 
 function fn(obj: object, key: string) {
-    return obj[key];
+  return obj[key];
 }
 
 // 这里为了避免调用fn函数时传入错误的参数类型，为obj和key设置了类型，分别为object和string
@@ -1291,71 +1291,72 @@ function fn(obj: object, key: string) {
 
 // 元素隐式地拥有any类型，因为string类型不能被用于索引类型{}。解决这个问题最暴力的方式就是使用 any大法：
 function fn(obj: object, key: string) {
-    return (obj as any)[key];
+  return (obj as any)[key];
 }
 // 但这并不是一个好方案。来回顾一下 fn 函数的作用，该函数用于获取某个对象中指定属性的值，因此期望传入的属性是对象中已经存在的属性。那么如何限制属性名的范围内？keyof闪亮登场：
 
 function fn<T extends object, K extends keyof T>(obj: T, key: K) {
-    return obj[key];
+  return obj[key];
 }
 
 // 在这里使用了泛型和泛型约束，还有keyof操作符。首先定义类型 T，并使用extends关键字约束T类型必须是object类型的子类型，然后使用keyof操作符获取T类型的所有键，其返回值是联合类型，最后利用extends关键字约束K类型必须是keyof T联合类型的子类型。
 
 // 还可以看这个例子
 type Person = {
-    name: string;
-    age: number;
-}
+  name: string;
+  age: number;
+};
 
 const cgx: Person = {
-    name: '吴京',
-    age: 23,
-}
+  name: "吴京",
+  age: 23,
+};
 
 function fn<T extends Person, K extends keyof T>(personObj: T, key: K) {
-    return personObj[key];
+  return personObj[key];
 }
 
-const uname = fn(cgx, 'name'); // const uname: string
-const age = fn(cgx, 'age'); // const age: number
+const uname = fn(cgx, "name"); // const uname: string
+const age = fn(cgx, "age"); // const age: number
 
 // 如果访问cgx对象上不存在的属性，编译器就会报错
-const sex=fn(cgx,'sex');
+const sex = fn(cgx, "sex");
 ```
 
 **in**
 
-in用来遍历枚举类型
+in 用来遍历枚举类型
+
 ```typescript
-type Keys = 'x' | 'y' | 'z';
+type Keys = "x" | "y" | "z";
 
 type Obj = {
-    [k in Keys]: string;
-} 
+  [k in Keys]: string;
+};
 //
 type Obj = {
-    x: string;
-    y: string;
-    z: string;
-}
+  x: string;
+  y: string;
+  z: string;
+};
 ```
 
 **extends**
 
-有时不想定义的泛型过于灵活，可以通过extends关键字添加泛型约束
+有时不想定义的泛型过于灵活，可以通过 extends 关键字添加泛型约束
 
 ```typescript
 interface ArgType {
-    id: number;
+  id: number;
 }
 
 function fn<T extends ArgType>(arg: T): T {
-    console.log(arg.id);
-    return arg;
+  console.log(arg.id);
+  return arg;
 }
 
 fn(250); // Argument of type 'number' is not assignable to parameter of type 'ArgType'
-fn({id: 250, value: '奥利给！'}); // ok
+fn({ id: 250, value: "奥利给！" }); // ok
 ```
 
 **Partial**
@@ -1364,69 +1365,251 @@ fn({id: 250, value: '奥利给！'}); // ok
 
 ```typescript
 type Partial<T> = {
-    [P in keyof T]?: T[P];
-}
+  [P in keyof T]?: T[P];
+};
 ```
-先通过keyof T拿到T的所有属性名，然后使用in进行遍历，将值赋给P，再通过T[P]获取相应属性值的类型。?用于将所有属性变成可选。举个例子
+
+先通过 keyof T 拿到 T 的所有属性名，然后使用 in 进行遍历，将值赋给 P，再通过 T[P]获取相应属性值的类型。?用于将所有属性变成可选。举个例子
 
 ```typescript
 interface Person {
-    name: string;
-    age: number;
+  name: string;
+  age: number;
 }
 
 type NewPerson = Partial<Person>;
 const zhl: NewPerson = {
-    name: '钟汉良',
-}
+  name: "钟汉良",
+};
 
 // 这个 NewPerson 类型等同于：
 interface NewPerson {
-    name?: string;
-    age?: number;
+  name?: string;
+  age?: number;
 }
 
 // 这里需要注意的是,Partial<T>只支持处理第一层的属性：
 // 看下面这个例子
 
 interface Person {
-    name: string;
-    age: number;
-    address: {
-        province: string;
-        city: string;
-    };
+  name: string;
+  age: number;
+  address: {
+    province: string;
+    city: string;
+  };
 }
 
 type NewPerson = Partial<Person>;
 const wyz: NewPerson = {
-    name: '吴彦祖',
-    address: { // Property 'city' is missing in type '{ province: string; }' but required in type '{ province: string; city: string; }'
-        province: '香港省',
-    },
-}
+  name: "吴彦祖",
+  address: {
+    // Property 'city' is missing in type '{ province: string; }' but required in type '{ province: string; city: string; }'
+    province: "香港省",
+  },
+};
 
 // 可以看到，第二层以后就不会处理了，想要处理多层，可以自己实现
 interface Person {
-    name: string;
-    age: number;
-    address: {
-        province: string;
-        city: string;
-    };
+  name: string;
+  age: number;
+  address: {
+    province: string;
+    city: string;
+  };
 }
 
 type DeepPartial<T> = {
-    [K in keyof T]?: T[K] extends object
-        ? DeepPartial<T[K]>
-        : T[K];
-}
+  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
 
 type NewPerson = DeepPartial<Person>;
 const wyz: NewPerson = {
-    name: '吴彦祖',
-    address: { // ok
-        province: '香港省',
-    },
+  name: "吴彦祖",
+  address: {
+    // ok
+    province: "香港省",
+  },
+};
+```
+
+**required**
+
+将属性变为必须
+
+```typescript
+type Required<T> = {
+  [K in keyof T]-?: T[k];
+};
+
+// 这里的-?代表移除可选特性
+
+interface Person {
+  name?: string;
+  age?: string;
 }
+
+type NewPerson=Required<Person>;
+
+const zjl:NewPerson={// Property 'age' is missing in type '{ name: string; }' but required in type 'Required<Person>'
+  name:"hello";
+}
+```
+
+**Readonly**
+
+将类型的属性变成只读
+
+```typescript
+type Readonly<T> = {
+  readonly [K in keyof T]: T[K];
+};
+
+// 这里举个例子
+interface Person {
+  name: string;
+  age: number;
+}
+
+type NewPerson = Readonly<Person>;
+const hg: NewPerson = {
+  name: "胡歌",
+  age: 18,
+};
+
+hg.age = 40; // Cannot assign to 'age' because it is a read-only property
+```
+
+**Record**
+
+Record<K extends keyof any, T>将 K 中所有属性的值转化为 T 类型。
+
+```typescript
+type Record<K extends keyof any, T> = {
+  [P in K]: T;
+};
+
+// 举个例子
+interface PersonInfo {
+  name: string;
+}
+
+type Person = "zxy" | "ldh" | "zgr";
+
+const ny: Record<Person, PersonInfo> = {
+  zxy: { name: "张学友" },
+  ldh: { name: "刘德华" },
+  zgr: { name: "张国荣" },
+};
+```
+
+**ReturnType**
+
+用来获取一个函数的返回类型
+
+```typescript
+type ReturnType<T extends (...args: any[]) => any> = T extends (
+  ...args: any[]
+) => infer R
+  ? R
+  : any;
+
+// 这里infer用于提取函数返回值的类型
+
+type Fn = (v: string) => number;
+
+let x: ReturnType<Fn> = 888;
+x = "888"; // Type 'string' is not assignable to type 'number'
+
+// ReturnType提取到Fn的返回值类型为number，所以变量x只能被赋予number类型的值。
+```
+
+**pick**
+
+从对象结构的类型中挑出一些指定的属性，来构造一个新类型
+
+```typescript
+type Pick<T, U extends keyof T> = {
+    [P in U]: T[P];
+}
+
+// 举个例子
+
+interface Person {
+    name: string;
+    age: number;
+    sex: string;
+}
+
+type NewPerson = Pick<Person, 'name' | 'sex'>;
+const ldh: NewPerson = {
+    name: '刘德华',
+    sex: '男',
+}
+// type NewPerson = {
+       name: string;
+       sex: string;
+   }
+
+```
+
+**Omit**
+从对象结构的类型中排除掉指定的属性
+
+```typescript
+type Omit<T, K extends keyof any> = Pick<T, Exclude<keyof T, K>>;
+
+// 举个例子
+interface Person {
+    name: string;
+    age: number;
+    sex: string;
+}
+
+type NewPerson = Omit<Person, 'sex'>;
+const ldh: NewPerson = {
+    name: '刘德华',
+    age: 18,
+}
+// type NewPerson = {
+       name: string;
+       age: number;
+   }
+```
+
+**Extract**
+
+Extract<T, U>，从 T 中提取出 U。
+
+```typescript
+type Extract<T, U> = T extends U ? T : never;
+
+// 举个例子
+
+type A = Extract<"x" | "y" | "z", "y">; // 'y'
+type B = Extract<string | number | (() => void), Function>; // () => void
+```
+
+**Exclude**
+
+Exclude<T, U>，从 T 中移除 U。
+
+```typescript
+type Exclude<T, U> = T extends U ? never : T;
+
+// 举个例子
+
+type A = Exclude<"x" | "y" | "z", "y">; // 'x' | 'z'
+type B = Exclude<string | number | (() => void), Function>; // string | number
+```
+
+**NonNullable**
+
+过滤掉类型中的 null 和 undefined 类型
+
+```typescript
+type NonNullable<T> = T extends null | undefined ? never : T;
+
+// 举例
+type A = NonNullable<string | null | undefined>; // string
 ```
