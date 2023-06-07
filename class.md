@@ -343,3 +343,178 @@ const b: Base = d;
 // No problem
 b.greet();
 ```
+
+**初始化顺序**
+
+有些情况下，js 类初始化顺序会感到奇怪
+
+```typescript
+class Base {
+  name = "base";
+  constructor() {
+    console.log("My name is " + this.name);
+  }
+}
+
+class Derived extends Base {
+  name = "derived";
+}
+
+// Prints "base", not "derived"
+const d = new Derived();
+```
+
+类的初始化顺序：
+
+- 基类字段初始化
+- 基类构造函数运行
+- 派生类字段初始化
+- 派生类构造函数运行
+
+**成员可见性**
+
+类成员默认的可见性为 public，一个 public 的成员可以在任何地方被获取：
+
+```typescript
+class Greeter {
+  public greet() {
+    console.log("hi!");
+  }
+}
+const g = new Greeter();
+g.greet();
+```
+
+protected 成员仅仅对子类可见
+
+```typescript
+class Greeter {
+  public greet() {
+    console.log("Hello, " + this.getName());
+  }
+  protected getName() {
+    return "hi";
+  }
+}
+
+class SpecialGreeter extends Greeter {
+  public howdy() {
+    // OK to access protected member here
+    console.log("Howdy, " + this.getName());
+  }
+}
+const g = new SpecialGreeter();
+g.greet(); // OK
+g.getName();
+```
+
+**受保护成员的公开**
+
+派生类需要遵循基类的实现，但是依然可以选择公开拥有更多能力的基类子类型，这就包括让一个 protected 成员变成 public
+
+```typescript
+class Base {
+  protected m = 10;
+}
+class Derived extends Base {
+  // No modifier, so default is 'public'
+  m = 15;
+}
+const d = new Derived();
+console.log(d.m); // OK
+
+// 这里需要注意的是，如果公开不是故意的，在这个派生类中，需要小心的拷贝 protected 修饰符
+```
+
+**交叉等级受保护成员访问**
+
+```typescript
+// 不同的 OOP 语言在通过一个基类引用是否可以合法的获取一个 protected 成员是有争议的。
+class Base {
+  protected x: number = 1;
+}
+class Derived1 extends Base {
+  protected x: number = 5;
+}
+class Derived2 extends Base {
+  f1(other: Derived2) {
+    other.x = 10;
+  }
+  f2(other: Base) {
+    other.x = 10;
+    // Property 'x' is protected and only accessible through an instance of class 'Derived2'. This is an instance of class 'Base'.
+  }
+}
+// 在 Java 中，这是合法的，而 C# 和 C++ 认为这段代码是不合法的。
+// typeScript 站在 C# 和 C++ 这边。因为 Derived2 的 x 应该只有从  Derived2 的子类访问才是合法的，而 Derived1 并不是它们中的一个。此外，如果通过 Derived1 访问 x 是不合法的，通过一个基类引用访问也应该是不合法的。
+// 我有一说一，typescript本就是微软搞得，肯定占同是微软的C#啊
+// 只能说微软搞得语言，跟java不是一般得像
+```
+
+**private**
+
+private 有点像 protected ，但是不允许访问成员，即便是子类
+
+```typescript
+class Base {
+  private x = 0;
+}
+const b = new Base();
+// Can't access from outside the class
+console.log(b.x);
+// Property 'x' is private and only accessible within class 'Base'.
+
+class Derived extends Base {
+  showX() {
+    // Can't access in subclasses
+    console.log(this.x);
+    // Property 'x' is private and only accessible within class 'Base'.
+  }
+}
+
+// 因为 private 成员对派生类并不可见，所以一个派生类也不能增加它的可见性：
+```
+
+**交叉实例私有成员访问**
+
+```typescript
+// TypeScript 允许交叉实例私有成员的获取
+class A {
+  private x = 10;
+
+  public sameAs(other: A) {
+    // No error
+    return other.x === this.x;
+  }
+}
+```
+
+private 和 protected 仅仅在类型检查得时候才会强制生效
+
+```typescript
+class MySafe {
+  private secretKey = 12345;
+}
+
+// In a JavaScript file...
+const s = new MySafe();
+// Will print 12345
+console.log(s.secretKey);
+```
+
+private 允许在类型检查的时候，通过方括号语法进行访问。这让比如单元测试的时候，会更容易访问 private 字段，这也让这些字段是弱私有（soft private）而不是严格的强制私有
+
+```typescript
+class MySafe {
+  private secretKey = 12345;
+}
+
+const s = new MySafe();
+
+// Not allowed during type checking
+console.log(s.secretKey);
+// Property 'secretKey' is private and only accessible within class 'MySafe'.
+
+// OK
+console.log(s["secretKey"]);
+```
