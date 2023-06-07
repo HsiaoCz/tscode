@@ -185,3 +185,161 @@ class C {
   }
 }
 ```
+
+**Getters/Setter**
+
+```typescript
+// 类也可以有存取器
+class C {
+  _length = 0;
+  get length() {
+    return this._length;
+  }
+  set length(value) {
+    this._length = value;
+  }
+}
+
+// TypeScript 对存取器有一些特殊的推断规则：
+// 如果 get 存在而 set 不存在，属性会被自动设置为 readonly
+// 如果 setter 参数的类型没有指定，它会被推断为 getter 的返回类型
+// getters 和 setters 必须有相同的成员可见性（Member Visibility）
+
+// 从 TypeScript 4.3 起，存取器在读取和设置的时候可以使用不同的类型。
+class Thing {
+  _size = 0;
+
+  // 注意这里返回的是 number 类型
+  get size(): number {
+    return this._size;
+  }
+
+  // 注意这里允许传入的是 string | number | boolean 类型
+  set size(value: string | number | boolean) {
+    let num = Number(value);
+
+    // Don't allow NaN, Infinity, etc
+    if (!Number.isFinite(num)) {
+      this._size = 0;
+      return;
+    }
+
+    this._size = num;
+  }
+}
+```
+
+**索引签名**
+
+类可以声明索引签名，它和对象类型的索引签名是一样的
+
+```typescript
+class MyClass {
+  [s: string]: boolean | ((s: string) => boolean);
+
+  check(s: string) {
+    return this[s] as boolean;
+  }
+}
+
+// 因为索引签名类型也需要捕获方法的类型，这使得并不容易有效的使用这些类型。通常的来说，在其他地方存储索引数据而不是在类实例本身，会更好一些
+```
+
+**类继承**
+
+implements 语句仅仅检查类是否按照接口类型实现，但它并不会改变类的类型或者方法的类型
+
+```typescript
+interface Pingable {
+  ping(): void;
+}
+
+class Sonar implements Pingable {
+  ping() {
+    console.log("ping!");
+  }
+}
+
+class Ball implements Pingable {
+  // Class 'Ball' incorrectly implements interface 'Pingable'.
+  // Property 'ping' is missing in type 'Ball' but required in type 'Pingable'.
+  pong() {
+    console.log("pong!");
+  }
+}
+
+// 类也可以实现多个接口，比如 class C implements A, B {
+// 实现一个可选属性的接口，并不会创建这个属性
+interface A {
+  x: number;
+  y?: number;
+}
+class C implements A {
+  x = 0;
+}
+const c = new C();
+c.y = 10;
+
+// Property 'y' does not exist on type 'C'.
+```
+
+**extends**
+类可以 extend 一个基类。一个派生类有基类所有的属性和方法，还可以定义额外的成员。
+
+```typescript
+class Animal {
+  move() {
+    console.log("Moving along!");
+  }
+}
+
+class Dog extends Animal {
+  woof(times: number) {
+    for (let i = 0; i < times; i++) {
+      console.log("woof!");
+    }
+  }
+}
+
+const d = new Dog();
+// Base class method
+d.move();
+// Derived class method
+d.woof(3);
+```
+
+**覆写属性**
+
+一个派生类可以覆写一个基类的字段或属性。可以使用 super 语法访问基类的方法。
+TypeScript 强制要求派生类总是它的基类的子类型。
+
+```typescript
+class Base {
+  greet() {
+    console.log("Hello, world!");
+  }
+}
+
+class Derived extends Base {
+  greet(name?: string) {
+    if (name === undefined) {
+      super.greet();
+    } else {
+      console.log(`Hello, ${name.toUpperCase()}`);
+    }
+  }
+}
+
+const d = new Derived();
+d.greet();
+d.greet("reader");
+```
+
+派生类需要遵循它的基类实现，而且一个基类引用指向一个派生类实例，这是非常常见且合法的
+
+```typescript
+// Alias the derived instance through a base class reference
+const b: Base = d;
+// No problem
+b.greet();
+```
