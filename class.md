@@ -518,3 +518,483 @@ console.log(s.secretKey);
 // OK
 console.log(s["secretKey"]);
 ```
+
+**静态成员**
+
+类可以有静态成员，静态成员和类实例没有关系，可以通过类本身访问到
+
+```typescript
+class MyClass {
+  static x = 0;
+  static printX() {
+    console.log(MyClass.x);
+  }
+}
+console.log(MyClass.x);
+MyClass.printX();
+```
+
+静态成员也可以使用 public protected 和 prvate 这些可见性修饰符
+
+```typescript
+class MyClass {
+  private static x = 0;
+}
+console.log(MyClass.x);
+// Property 'x' is private and only accessible within class 'MyClass'.
+```
+
+静态成员也可以被继承
+
+```typescript
+class Base {
+  static getGreeting() {
+    return "Hello world";
+  }
+}
+class Derived extends Base {
+  myGreeting = Derived.getGreeting();
+}
+```
+
+**特殊静态名称**
+
+```typescript
+// 类本身是函数，而覆写 Function 原型上的属性通常认为是不安全的，因此不能使用一些固定的静态名称，函数属性像 name、length、call 不能被用来定义 static 成员：
+
+class S {
+  static name = "S!";
+  // Static property 'name' conflicts with built-in property 'Function.name' of constructor function 'S'.
+}
+```
+
+**为什么没有静态类?**
+
+```typescript
+// 不需要一个 static class 语法，因为 TypeScript 中一个常规对象（或者顶级函数）可以实现一样的功能
+
+// Unnecessary "static" class
+class MyStaticClass {
+  static doSomething() {}
+}
+
+// Preferred (alternative 1)
+function doSomething() {}
+
+// Preferred (alternative 2)
+const MyHelperObject = {
+  dosomething() {},
+};
+```
+
+**类静态块**
+
+静态块允许写一系列有自己作用域得语句，也可以获取类里的私有字段。
+这意味着可以安心的写初始化代码：正常书写语句，无变量泄漏，还可以完全获取类中的属性和方法。
+
+```typescript
+class Foo {
+  static #count = 0;
+
+  get count() {
+    return Foo.#count;
+  }
+
+  static {
+    try {
+      const lastInstances = loadLastInstances();
+      Foo.#count += lastInstances.length;
+    } catch {}
+  }
+}
+```
+
+**泛型类**
+
+类跟接口一样，也可以写泛型。当使用 new 实例化一个泛型类，它的类型参数的推断跟函数调用是同样的方式
+
+```typescript
+class Box<Type> {
+  contents: Type;
+  constructor(value: Type) {
+    this.contents = value;
+  }
+}
+
+const b = new Box("hello!");
+// const b: Box<string>
+// 类和接口一样，可以使用泛型约束以及默认值
+```
+
+**静态成员中得类型参数**
+
+```typescript
+class Box<Type> {
+  static defaultValue: Type;
+  // Static members cannot reference class type parameters.
+}
+
+// 这代码并不合法，但是原因可能并没有那么明显
+// 类型会被完全抹除，运行时，只有一个 Box.defaultValue 属性槽。这也意味着如果设置 Box<string>.defaultValue 是可以的话，这也会改变 Box<number>.defaultValue，而这样是不好的。
+// 泛型类的静态成员不应该引用类型的类型参数
+```
+
+**类运行的 this**
+
+```javascript
+// TypeScript 并不会更改 JavaScript 运行时的行为，并且 JavaScript 有时会出现一些奇怪的运行时行为。
+// 就比如 JavaScript 处理 this 就很奇怪
+class MyClass {
+  name = "MyClass";
+  getName() {
+    return this.name;
+  }
+}
+const c = new MyClass();
+const obj = {
+  name: "obj",
+  getName: c.getName,
+};
+
+// Prints "obj", not "MyClass"
+console.log(obj.getName());
+
+// 默认情况下，函数中 this 的值取决于函数是如何被调用的。在这个例子中，因为函数通过 obj 被调用，所以 this 的值是 obj 而不是类实例
+```
+
+**箭头函数**
+
+```typescript
+// 如果有一个函数，经常在被调用的时候丢失 this 上下文，使用一个箭头函数或许更好些
+class MyClass {
+  name = "MyClass";
+  getName = () => {
+    return this.name;
+  };
+}
+const c = new MyClass();
+const g = c.getName;
+// Prints "MyClass" instead of crashing
+console.log(g());
+
+// 这里有几点需要注意
+// this 的值在运行时是正确的，即使 TypeScript 不检查代码
+// 这会使用更多的内存，因为每一个类实例都会拷贝一遍这个函数。
+// 不能在派生类使用 super.getName ，因为在原型链中并没有入口可以获取基类方法。
+```
+
+**this 参数**
+
+```typescript
+// 在 TypeScript 方法或者函数的定义中，第一个参数且名字为 this 有特殊的含义。该参数会在编译的时候被抹除
+
+// TypeScript input with 'this' parameter
+function fn(this: SomeType, x: number) {
+  /* ... */
+}
+
+// JavaScript output
+function fn(x) {
+  /* ... */
+}
+
+// TypeScript 会检查一个有 this 参数的函数在调用时是否有一个正确的上下文。不像上个例子使用箭头函数，可以给方法定义添加一个 this 参数，静态强制方法被正确调用
+
+class MyClass {
+  name = "MyClass";
+  getName(this: MyClass) {
+    return this.name;
+  }
+}
+const c = new MyClass();
+// OK
+c.getName();
+
+// Error, would crash
+const g = c.getName;
+console.log(g());
+// The 'this' context of type 'void' is not assignable to method's 'this' of type 'MyClass'.
+
+// 这个方法也有一些注意点，正好跟箭头函数相反
+// JavaScript 调用者依然可能在没有意识到它的时候错误使用类方法
+// 每个类一个函数，而不是每一个类实例一个函数
+// 基类方法定义依然可以通过 super 调用
+```
+
+**this 类型**
+
+在类中，有一个特殊的名为 this 的类型，会动态的引用当前类的类型
+
+```typescript
+class Box {
+  contents: string = "";
+  set(value: string) {
+    // (method) Box.set(value: string): this
+    this.contents = value;
+    return this;
+  }
+}
+```
+
+这里，TypeScript 推断 set 的返回类型为 this 而不是 Box 。写一个 Box 的子类
+
+```typescript
+class ClearableBox extends Box {
+  clear() {
+    this.contents = "";
+  }
+}
+
+const a = new ClearableBox();
+const b = a.set("hello");
+
+// const b: ClearableBox
+```
+
+也可以在参数类型注解中使用 this
+
+```typescript
+class Box {
+  content: string = "";
+  sameAs(other: this) {
+    return other.content === this.content;
+  }
+}
+
+// 不同于写 other: Box ，如果有一个派生类，它的 sameAs 方法只接受来自同一个派生类的实例。
+
+class Box {
+  content: string = "";
+  sameAs(other: this) {
+    return other.content === this.content;
+  }
+}
+
+class DerivedBox extends Box {
+  otherContent: string = "?";
+}
+
+const base = new Box();
+const derived = new DerivedBox();
+derived.sameAs(base);
+// Argument of type 'Box' is not assignable to parameter of type 'DerivedBox'.
+// Property 'otherContent' is missing in type 'Box' but required in type 'DerivedBox'.
+```
+
+**基于 this 的类型保护**
+
+```typescript
+// 可以在类和接口的方法返回的位置，使用 this is Type 。当搭配使用类型收窄 (举个例子，if 语句)，目标对象的类型会被收窄为更具体的 Type。
+class FileSystemObject {
+  isFile(): this is FileRep {
+    return this instanceof FileRep;
+  }
+  isDirectory(): this is Directory {
+    return this instanceof Directory;
+  }
+  isNetworked(): this is Networked & this {
+    return this.networked;
+  }
+  constructor(public path: string, private networked: boolean) {}
+}
+
+class FileRep extends FileSystemObject {
+  constructor(path: string, public content: string) {
+    super(path, false);
+  }
+}
+
+class Directory extends FileSystemObject {
+  children: FileSystemObject[];
+}
+
+interface Networked {
+  host: string;
+}
+
+const fso: FileSystemObject = new FileRep("foo/bar.txt", "foo");
+
+if (fso.isFile()) {
+  fso.content;
+  // const fso: FileRep
+} else if (fso.isDirectory()) {
+  fso.children;
+  // const fso: Directory
+} else if (fso.isNetworked()) {
+  fso.host;
+  // const fso: Networked & FileSystemObject
+}
+
+// 一个常见的基于 this 的类型保护的使用例子，会对一个特定的字段进行懒校验（lazy validation）。举个例子，在这个例子中，当 hasValue 被验证为 true 时，会从类型中移除 undefined
+
+class Box<T> {
+  value?: T;
+
+  hasValue(): this is { value: T } {
+    return this.value !== undefined;
+  }
+}
+
+const box = new Box();
+box.value = "Gameboy";
+
+box.value;
+// (property) Box<unknown>.value?: unknown
+
+if (box.hasValue()) {
+  box.value;
+  // (property) value: unknown
+}
+```
+
+**参数属性**
+
+TypeScript 提供了特殊的语法，可以把一个构造函数参数转成一个同名同值的类属性。这些就被称为参数属性（parameter properties）。可以通过在构造函数参数前添加一个可见性修饰符 public private protected 或者 readonly 来创建参数属性，最后这些类属性字段也会得到这些修饰符
+
+```typescript
+class Params {
+  constructor(
+    public readonly x: number,
+    protected y: number,
+    private z: number
+  ) {
+    // No body necessary
+  }
+}
+const a = new Params(1, 2, 3);
+console.log(a.x);
+// (property) Params.x: number
+
+console.log(a.z);
+// Property 'z' is private and only accessible within class 'Params'.
+```
+
+**类表达式**
+
+类表达式跟类声明非常类似，唯一不同的是类表达式不需要一个名字，尽管可以通过绑定的标识符进行引用
+
+```typescript
+const someClass = class<Type> {
+  content: Type;
+  constructor(value: Type) {
+    this.content = value;
+  }
+};
+
+const m = new someClass("Hello, world");
+// const m: someClass<string>
+```
+
+**抽象类和成员**
+
+```typescript
+// TypeScript 中，类、方法、字段都可以是抽象的（abstract）。
+// 抽象方法或者抽象字段是不提供实现的。这些成员必须存在在一个抽象类中，这个抽象类也不能直接被实例化。
+// 抽象类的作用是作为子类的基类，让子类实现所有的抽象成员。当一个类没有任何抽象成员，他就会被认为是具体的（concrete）
+
+abstract class Base {
+  abstract getName(): string;
+
+  printName() {
+    console.log("Hello, " + this.getName());
+  }
+}
+
+const b = new Base();
+// Cannot create an instance of an abstract class.
+
+// 不能使用 new 实例 Base 因为它是抽象类。需要写一个派生类，并且实现抽象成员。
+
+class Derived extends Base {
+  getName() {
+    return "world";
+  }
+}
+
+const d = new Derived();
+d.printName();
+
+// 注意，如果忘记实现基类的抽象成员，会得到一个报错
+
+class Derived extends Base {
+  // Non-abstract class 'Derived' does not implement inherited abstract member 'getName' from class 'Base'.
+  // forgot to do anything
+}
+```
+
+**抽象构造签名**
+
+```typescript
+// 有的时候，希望接受传入可以继承一些抽象类产生一个类的实例的类构造函数。
+// 举个例子，也许会写这样的代码
+
+function greet(ctor: typeof Base) {
+  const instance = new ctor();
+  // Cannot create an instance of an abstract class.
+  instance.printName();
+}
+// TypeScript 会报错，提示正在尝试实例化一个抽象类。毕竟，根据 greet 的定义，这段代码应该是合法的
+// Bad!
+greet(Base);
+
+// 但如果写一个函数接受传入一个构造签名
+
+function greet(ctor: new () => Base) {
+  const instance = new ctor();
+  instance.printName();
+}
+greet(Derived);
+greet(Base);
+
+// Argument of type 'typeof Base' is not assignable to parameter of type 'new () => Base'.
+// Cannot assign an abstract constructor type to a non-abstract constructor type.
+
+// 现在 TypeScript 会正确的提示，哪一个类构造函数可以被调用，Derived 可以，因为它是具体的，而 Base 是不能的。
+```
+
+**类与类之间的关系**
+
+```typescript
+// 大部分时候，TypeScript 的类跟其他类型一样，会被结构性比较。
+// 举个例子，这两个类可以用于替代彼此，因为它们结构是相等的
+
+class Point1 {
+  x = 0;
+  y = 0;
+}
+
+class Point2 {
+  x = 0;
+  y = 0;
+}
+
+// OK
+const p: Point1 = new Point2();
+
+// 类似的还有，类的子类型之间可以建立关系，即使没有明显的继承
+class Person {
+  name: string;
+  age: number;
+}
+
+class Employee {
+  name: string;
+  age: number;
+  salary: number;
+}
+
+// OK
+const p: Person = new Employee();
+
+// 空类没有任何成员。在一个结构化类型系统中，没有成员的类型通常是任何其他类型的父类型。所以如果写一个空类（只是举例，可不要这样做），任何东西都可以用来替换它
+class Empty {}
+
+function fn(x: Empty) {
+  // can't do anything with 'x', so I won't
+}
+
+// All OK!
+fn(window);
+fn({});
+fn(fn);
+```
